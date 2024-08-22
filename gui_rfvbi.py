@@ -95,7 +95,9 @@ def put_gadgets_main(app: ctk.CTk) -> None:
     bt_englog = ctk.CTkButton(
         master=app, text="Log de Motores", command=runbt.getenglog
     )
-    bt_eventslog = ctk.CTkButton(master=app, text="Log de Eventos", command=runbt.getbd)
+    bt_eventslog = ctk.CTkButton(
+        master=app, text="Log de Eventos", command=runbt.geteventslog
+    )
     bt_db = ctk.CTkButton(master=app, text="BD Cliente", command=runbt.getbd)
     bt_run = ctk.CTkButton(
         master=app, text="Executar", fg_color="Red", command=runbt.run_rfvtobi

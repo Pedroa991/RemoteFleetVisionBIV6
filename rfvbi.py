@@ -14,7 +14,7 @@ from classes_rfvbi import PathHolder
 import calc_engdata
 
 
-SCRIPT_VERSION = "V6.0"
+SCRIPT_VERSION = "V6.0.1"
 
 DICT_COLNAME = {
     "Timestamp": ["Sample Time"],
@@ -123,19 +123,14 @@ def get_database_data(path: str, list_colstd: list[str] | tuple[str]) -> pl.Data
 
 def concatenate_dfs(main_df: pl.DataFrame, aux_df: pl.DataFrame) -> pl.DataFrame:
     """Concatena dataframes assegurando dtypes compatíveis"""
-    main_df = main_df.with_columns(
-        [
-            pl.lit(None).alias(col)
-            for col in aux_df.columns
-            if col not in main_df.columns
-        ]
+    all_columns = set(main_df.columns).union(set(aux_df.columns))
+    main_df = main_df.select(
+        pl.col(col) if col in main_df.columns else pl.lit(None).alias(col)
+        for col in all_columns
     )
-    aux_df = aux_df.with_columns(
-        [
-            pl.lit(None).alias(col)
-            for col in main_df.columns
-            if col not in aux_df.columns
-        ]
+    aux_df = aux_df.select(
+        pl.col(col) if col in aux_df.columns else pl.lit(None).alias(col)
+        for col in all_columns
     )
     try:
         main_df = pl.concat([main_df, aux_df], how="vertical_relaxed")
