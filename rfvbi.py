@@ -10,11 +10,13 @@ from datetime import timedelta
 import zipfile
 import re
 import polars as pl
+import fastexcel  # pylint: disable=unused-import
 from classes_rfvbi import PathHolder
 import calc_engdata
+from special_parse import additional_cols
 
 
-SCRIPT_VERSION = "V6.0.1"
+SCRIPT_VERSION = "V6.1.0"
 
 DICT_COLNAME = {
     "Timestamp": ["Sample Time"],
@@ -22,15 +24,18 @@ DICT_COLNAME = {
     "RPM": ["Engine Speed [RPM]"],
     "Coolant_Temp": ["Engine Coolant Temperature [Deg. C]"],
     "Oil_Press": ["Engine Oil Pressure [kPa]", "Engine Oil Pressure 1 [kPa]"],
-    "Oil_Temp": ["Oil Temperature"],
+    "Oil_Temp": ["Engine Oil Temperature [Deg. C]"],
     "Batt": ["Battery Voltage [volts]", "Battery Potential / Power Input 1 [volts]"],
-    "Boost": ["Boost Pressure [kPa]"],
+    "Boost": ["Boost Pressure [kPa]", "Engine Intake Manifold #1 Pressure [kPa]"],
     "Fuel_Rate": ["Fuel Consumption Rate [L/hr]", "Engine Fuel Rate [L/hr]"],
     "EXH_L": [
         "Left Exhaust Temperature [Deg. C]",
         "Engine Exhaust Manifold Bank 1 Temperature 1 [Deg. C]",
     ],
-    "EXH_R": ["Right Exhaust Temperature [Deg. C]"],
+    "EXH_R": [
+        "Right Exhaust Temperature [Deg. C]",
+        "Engine Exhaust Manifold Bank 2 Temperature 1 [Deg. C]",
+    ],
     "Total_Fuel": ["Total Fuel [L]", "Engine Total Fuel Used [L]"],
     "SMH": [
         "Run Hours [Hrs]",
@@ -43,7 +48,7 @@ DICT_COLNAME = {
         "Total Time [Hrs]",
         "PLE Run Hours [Hours]",
     ],
-    "Fuel_Press": ["Fuel Pressure [kPa]"],
+    "Fuel_Press": ["Fuel Pressure [kPa]", "Engine Fuel Delivery Pressure [kPa]"],
     "Crank_Press": ["Crankcase Pressure [kPa]"],
     "Latitude": ["Latitude [Degrees]"],
     "Longitude": ["Longitude [Degrees]"],
@@ -67,7 +72,7 @@ TUPLE_COLEVENT = (
 def delete_data(dbpath: str) -> None:
     """Deleta todos os arquivos e pasta de uma pasta"""
     tx_warning = """Opção sem concatenação selecionada!
-    Deletando dados anteriores..."""
+Deletando dados anteriores..."""
     print(tx_warning)
     for filename in os.listdir(dbpath):
         file_path = os.path.join(dbpath, filename)
@@ -157,7 +162,7 @@ def rename_col(df: pl.DataFrame, sn: str, path_config: str) -> pl.DataFrame:
     """Renomeia as colunas para padronizar"""
     df_rename = pl.read_excel(path_config, sheet_name="ListaParm")
     df_rename = df_rename.filter(pl.col("SN") == sn)
-    dict_rename = {}
+    dict_rename = dict()
     list_missingcol = []
 
     if not df_rename.is_empty():
@@ -167,7 +172,13 @@ def rename_col(df: pl.DataFrame, sn: str, path_config: str) -> pl.DataFrame:
 
         col_found = False
 
-        if col_newname in dict_rename.values():
+        for keycolname, valuecolname in dict_rename.items():
+            if col_newname == valuecolname:
+                if keycolname in df.columns:
+                    col_found = True
+                    break
+
+        if col_found:
             continue
 
         for col_oldname in DICT_COLNAME[col_newname]:
@@ -311,6 +322,7 @@ def create_engdata_output(
         print(f"Ativo: {sn_file}\n")
         df_asset = pl.read_csv(path_engfile, encoding="utf-16le", infer_schema_length=0)
         df_asset = rename_col(df_asset, sn_file, path_holder.config)
+        list_colstd = additional_cols(list_colstd, sn_file)
         df_asset = define_types(df_asset, list_colstd)
         df_asset = cleandata(df_asset, path_holder.config, "DadosInvalidos")
         df_asset = df_asset.with_columns(pl.lit(sn_file).alias("Asset"))
@@ -321,7 +333,17 @@ def create_engdata_output(
     df_full_engs = concatenate_dfs(df_full_engs, df_all_current)
     df_full_engs = calc_engdata.run_alldata(df_full_engs, path_holder)
 
-    df_full_engs = df_full_engs.unique(subset=["Asset", "Timestamp"], keep="last")
+    df_full_engs = df_full_engs.with_columns(
+        pl.col("Timestamp").dt.strftime("%Y-%m-%d %H:%M:%S").alias("Timestamp_str")
+    )
+    df_full_engs = df_full_engs.unique(subset=["Asset", "Timestamp_str"], keep="last")
+    df_full_engs = df_full_engs.drop("Timestamp_str")
+
+    df_full_engs = df_full_engs.select(
+        ["Timestamp"]
+        + sorted([col for col in df_full_engs.columns if col != "Timestamp"])
+    )
+
     df_full_engs = df_full_engs.sort(["Asset", "Timestamp"])
     df_full_engs.write_csv(path_holder.eng_output, datetime_format="%Y-%m-%d %H:%M:%S")
     rmtree(path_holder.englogs)
@@ -369,7 +391,28 @@ def create_events_output(
 
         df_full_events = concatenate_dfs(df_full_events, df_asset_events)
 
-    df_full_events = df_full_events.unique(keep="last")
+    df_full_events = df_full_events.with_columns(
+        pl.col("Timestamp").dt.strftime("%Y-%m-%d %H:%M:%S").alias("Timestamp_str")
+    )
+    df_full_events = df_full_events.unique(
+        subset=[
+            "Type",
+            "Code",
+            "Description",
+            "Asset",
+            "Source",
+            "Severity",
+            "Timestamp_str",
+        ],
+        keep="last",
+    )
+    df_full_events = df_full_events.drop("Timestamp_str")
+
+    df_full_events = df_full_events.select(
+        ["Timestamp"]
+        + sorted([col for col in df_full_events.columns if col != "Timestamp"])
+    )
+
     df_full_events = df_full_events.sort(["Asset", "Timestamp"])
     df_full_events.write_csv(
         path_holder.event_output, datetime_format="%Y-%m-%d %H:%M:%S"

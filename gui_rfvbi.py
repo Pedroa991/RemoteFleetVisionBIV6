@@ -41,11 +41,11 @@ class GadgetsFuntions:
     def geteventslog(self):
         """Pega caminho do arquivo de eventos dos motores"""
         pathfile = filedialog.askopenfilename(
-            title="Selecione o arquivo de log de motores",
+            title="Selecione o arquivo de log de eventos",
             filetypes=[("Excel file", "*.xls*")],
         )
         if pathfile:
-            print("Arquivo de motores:" + str(pathfile) + "\n")
+            print("Arquivo de eventos:" + str(pathfile) + "\n")
             self.path_eventslog = pathfile
 
     def on_checkbutton_toggle(self):
@@ -79,7 +79,9 @@ class GadgetsFuntions:
             showerror("Erro", tx_error)
             return
 
-        rfvbi.main(self.path_db, self.path_englog, self.path_eventslog, self.concat)
+        rfvbi.main(
+            self.path_db, self.path_englog, self.path_eventslog, self.concat.get()
+        )
         showinfo("Sucesso!", "Resultados obitidos com sucesso!")
 
 

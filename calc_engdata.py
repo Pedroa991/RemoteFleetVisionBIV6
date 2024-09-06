@@ -3,6 +3,7 @@
 from datetime import datetime, time
 import polars as pl
 from classes_rfvbi import PathHolder
+import special_parse
 
 
 def exh_diff(df: pl.DataFrame) -> pl.DataFrame:
@@ -96,10 +97,16 @@ def maint_shift(
         daydiff = (day_last - last_main_date).total_seconds() / (24 * 3600)
 
         if not last_main_smh:
-            last_main_smh = smh_last - daydiff * smh_by_day
+            if smh_by_day:
+                last_main_smh = smh_last - daydiff * smh_by_day
+            else:
+                last_main_smh = None
 
         if not last_main_fuel:
-            last_main_fuel = fuel_last - daydiff * fuel_by_day
+            if fuel_by_day:
+                last_main_fuel = fuel_last - daydiff * fuel_by_day
+            else:
+                last_main_fuel = None
 
     try:
         smh_shift = last_main_smh - last_main_smh * (nclycles_smh) - smh_std_main
@@ -301,6 +308,7 @@ def run_currentdata(df: pl.DataFrame) -> pl.DataFrame:
     """Executa as rotinas de cálculo para os dados de motor
     Otimizado para os dados analisados no período atual
     """
+    df = special_parse.run_currentdata(df)
     df = exh_diff(df)
     return df
 
@@ -309,6 +317,7 @@ def run_alldata(df: pl.DataFrame, path_holder: PathHolder) -> pl.DataFrame:
     """Executa as rotinas de cálculo para os dados de motor
     Otimizado para todo o banco de dados com os dados atualizados
     """
+    df = special_parse.run_all(df)
     maintenance_est(df, path_holder)
     return df
 
