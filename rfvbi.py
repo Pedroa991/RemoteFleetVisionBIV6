@@ -16,7 +16,20 @@ import calc_engdata
 from special_parse import additional_cols
 
 
-SCRIPT_VERSION = "V6.1.0"
+SCRIPT_VERSION = "V6.1.1"
+
+ESSENTIALS_COL = (
+    "Timestamp",
+    "Load",
+    "RPM",
+    "Coolant_Temp",
+    "Oil_Press",
+    "Fuel_Rate",
+    "EXH_L",
+    "EXH_R",
+    "Total_Fuel",
+    "SMH",
+)
 
 DICT_COLNAME = {
     "Timestamp": ["Sample Time"],
@@ -50,6 +63,7 @@ DICT_COLNAME = {
     ],
     "Fuel_Press": ["Fuel Pressure [kPa]", "Engine Fuel Delivery Pressure [kPa]"],
     "Crank_Press": ["Crankcase Pressure [kPa]"],
+    "Aftercooler_Temp": ["Engine Intercooler Temperature [Deg. C]"],
     "Latitude": ["Latitude [Degrees]"],
     "Longitude": ["Longitude [Degrees]"],
     "Vessel_Speed": ["Speed [km/h]"],
@@ -187,17 +201,19 @@ def rename_col(df: pl.DataFrame, sn: str, path_config: str) -> pl.DataFrame:
                 col_found = True
                 break
 
-        if not col_found:
+        if not col_found and col_newname in ESSENTIALS_COL:
             list_missingcol.append(col_newname)
 
     if list_missingcol:
         print(
-            f"{list_missingcol} Não encontrado(s) para o ativo {sn}! Verifique o ConfigScript!\n"
+            f"{list_missingcol} Não encontrado(s) para o ativo {sn}! Verifique o ConfigScript!"
         )
 
     df = df.rename(dict_rename)
 
     df = df.with_columns([pl.lit(None).alias(colmiss) for colmiss in list_missingcol])
+
+    print("Colunas padronizadas!")
 
     return df
 
@@ -300,7 +316,7 @@ def create_engdata_output(
 ) -> None:
     """Rotina para manipulação dos dados dos motores"""
 
-    print("Iniciando tratamento de dados de motores...\n")
+    print("\nIniciando tratamento de dados de motores...\n")
 
     list_englogs = prep_englog(englogpath, path_holder.englogs)
 
@@ -319,12 +335,13 @@ def create_engdata_output(
             print(sn_file, " Não tem informações em ASSET_INFO.")
             continue
 
-        print(f"Ativo: {sn_file}\n")
+        print(f"\nAtivo: {sn_file}\n")
         df_asset = pl.read_csv(path_engfile, encoding="utf-16le", infer_schema_length=0)
         df_asset = rename_col(df_asset, sn_file, path_holder.config)
         list_colstd = additional_cols(list_colstd, sn_file)
         df_asset = define_types(df_asset, list_colstd)
         df_asset = cleandata(df_asset, path_holder.config, "DadosInvalidos")
+        print("Dados limpos!")
         df_asset = df_asset.with_columns(pl.lit(sn_file).alias("Asset"))
 
         df_all_current = concatenate_dfs(df_all_current, df_asset)
@@ -333,6 +350,8 @@ def create_engdata_output(
     df_full_engs = concatenate_dfs(df_full_engs, df_all_current)
     df_full_engs = calc_engdata.run_alldata(df_full_engs, path_holder)
 
+    print("Cálculos realizados!\n")
+
     df_full_engs = df_full_engs.with_columns(
         pl.col("Timestamp").dt.strftime("%Y-%m-%d %H:%M:%S").alias("Timestamp_str")
     )
@@ -340,8 +359,10 @@ def create_engdata_output(
     df_full_engs = df_full_engs.drop("Timestamp_str")
 
     df_full_engs = df_full_engs.select(
-        ["Timestamp"]
-        + sorted([col for col in df_full_engs.columns if col != "Timestamp"])
+        ["Timestamp", "Asset"]
+        + sorted(
+            [col for col in df_full_engs.columns if col not in ["Timestamp", "Asset"]]
+        )
     )
 
     df_full_engs = df_full_engs.sort(["Asset", "Timestamp"])

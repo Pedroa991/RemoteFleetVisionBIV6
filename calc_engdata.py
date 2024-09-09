@@ -124,7 +124,7 @@ def maint_shift(
 def maintenance_est(df: pl.DataFrame, path_holder: PathHolder) -> pl.DataFrame:
     """Estimativa de manutenção"""
 
-    print("Iniciando cálculo de manutenção...\n")
+    print("\nIniciando cálculo de manutenção...\n")
 
     df_day = median_diff_by_day(df, {"SMH", "Total_Fuel"})
     df_max = max_by_asset(df, {"SMH", "Total_Fuel", "Timestamp"})
