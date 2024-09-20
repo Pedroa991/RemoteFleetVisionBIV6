@@ -15,7 +15,7 @@ MIN_SIZE_WINDOW_HEIGHT = 200
 class GadgetsFuntions:
     """Classe para funções dos botões"""
 
-    def __init__(self) -> None:
+    def __init__(self):
         self.path_db = ""
         self.path_englog = ""
         self.path_eventslog = ""

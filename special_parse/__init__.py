@@ -2,7 +2,7 @@
 
 import types
 import polars as pl
-from . import exhaust_diff_by_cilinder
+from . import exhaust_diff_by_cilinder, generator_data
 
 
 def __check_for_addcol(module: types.ModuleType, sn, collist: list[str]) -> list[str]:
@@ -19,6 +19,7 @@ def __check_for_addcol(module: types.ModuleType, sn, collist: list[str]) -> list
 def additional_cols(collist: list[str], sn: str) -> list[str]:
     """Executa rotinas de adição de colunas"""
     collist = __check_for_addcol(exhaust_diff_by_cilinder, sn, collist)
+    collist = __check_for_addcol(generator_data, sn, collist)
     return collist
 
 

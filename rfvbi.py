@@ -16,7 +16,7 @@ import calc_engdata
 from special_parse import additional_cols
 
 
-SCRIPT_VERSION = "V6.1.1"
+SCRIPT_VERSION = "V6.2.0"
 
 ESSENTIALS_COL = (
     "Timestamp",
@@ -40,7 +40,11 @@ DICT_COLNAME = {
     "Oil_Temp": ["Engine Oil Temperature [Deg. C]"],
     "Batt": ["Battery Voltage [volts]", "Battery Potential / Power Input 1 [volts]"],
     "Boost": ["Boost Pressure [kPa]", "Engine Intake Manifold #1 Pressure [kPa]"],
-    "Fuel_Rate": ["Fuel Consumption Rate [L/hr]", "Engine Fuel Rate [L/hr]"],
+    "Fuel_Rate": [
+        "Fuel Consumption Rate [L/hr]",
+        "Engine Fuel Rate [L/hr]",
+        "Fuel Consumption Rate",
+    ],
     "EXH_L": [
         "Left Exhaust Temperature [Deg. C]",
         "Engine Exhaust Manifold Bank 1 Temperature 1 [Deg. C]",
@@ -60,10 +64,12 @@ DICT_COLNAME = {
         "Total Operating Hours [Hrs]",
         "Total Time [Hrs]",
         "PLE Run Hours [Hours]",
+        "PLE Run Hours [Hrs]",
     ],
     "Fuel_Press": ["Fuel Pressure [kPa]", "Engine Fuel Delivery Pressure [kPa]"],
     "Crank_Press": ["Crankcase Pressure [kPa]"],
     "Aftercooler_Temp": ["Engine Intercooler Temperature [Deg. C]"],
+    "Inlet_Air_Temp": ["Inlet Air Temperature [Deg. C]"],
     "Latitude": ["Latitude [Degrees]"],
     "Longitude": ["Longitude [Degrees]"],
     "Vessel_Speed": ["Speed [km/h]"],
@@ -332,7 +338,7 @@ def create_engdata_output(
         path_engfile = path_holder.englogs + engfile
 
         if not sn_file in set_assets:
-            print(sn_file, " Não tem informações em ASSET_INFO.")
+            print("\n", sn_file, " Não tem informações em ASSET_INFO.")
             continue
 
         print(f"\nAtivo: {sn_file}\n")
@@ -345,6 +351,14 @@ def create_engdata_output(
         df_asset = df_asset.with_columns(pl.lit(sn_file).alias("Asset"))
 
         df_all_current = concatenate_dfs(df_all_current, df_asset)
+
+    if df_all_current.is_empty():
+        print("\nSem dados de motores!\n")
+        df_full_engs.write_csv(
+            path_holder.eng_output, datetime_format="%Y-%m-%d %H:%M:%S"
+        )
+        rmtree(path_holder.englogs)
+        return
 
     df_all_current = calc_engdata.run_currentdata(df_all_current)
     df_full_engs = concatenate_dfs(df_full_engs, df_all_current)
@@ -380,6 +394,16 @@ def create_events_output(
     print("Iniciando tratamento de dados de eventos...\n")
 
     df_eventsumraw = pl.read_excel(eventslogpath, sheet_name="Engine Event Summary")
+
+    df_full_events = get_database_data(path_holder.event_output, TUPLE_COLEVENT)
+
+    if df_eventsumraw.is_empty():
+        print("\nNão há dados de eventos!\n")
+        df_full_events.write_csv(
+            path_holder.event_output, datetime_format="%Y-%m-%d %H:%M:%S"
+        )
+        return
+
     df_eventsumraw = df_eventsumraw.select(
         pl.col("Unit Name"),
         pl.sum_horizontal(
@@ -392,7 +416,6 @@ def create_events_output(
     print(df_eventsumraw, "\n")
 
     list_events_sheetnames = df_eventsumraw["Unit Name"].to_list()
-    df_full_events = get_database_data(path_holder.event_output, TUPLE_COLEVENT)
 
     for evsheetname in list_events_sheetnames:
         sn = evsheetname[-8:]
@@ -411,6 +434,13 @@ def create_events_output(
         df_asset_events = df_asset_events.select(TUPLE_COLEVENT)
 
         df_full_events = concatenate_dfs(df_full_events, df_asset_events)
+
+    if df_full_events.is_empty():
+        print("\nSem dados de eventos!\n")
+        df_full_events.write_csv(
+            path_holder.event_output, datetime_format="%Y-%m-%d %H:%M:%S"
+        )
+        return
 
     df_full_events = df_full_events.with_columns(
         pl.col("Timestamp").dt.strftime("%Y-%m-%d %H:%M:%S").alias("Timestamp_str")
