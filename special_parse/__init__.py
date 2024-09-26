@@ -2,7 +2,7 @@
 
 import types
 import polars as pl
-from . import exhaust_diff_by_cilinder, generator_data
+from . import exhaust_diff_by_cilinder, generator_data, eng_separator
 
 
 def __check_for_addcol(module: types.ModuleType, sn, collist: list[str]) -> list[str]:

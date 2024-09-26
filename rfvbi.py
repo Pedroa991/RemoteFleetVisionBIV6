@@ -13,10 +13,10 @@ import polars as pl
 import fastexcel  # pylint: disable=unused-import
 from classes_rfvbi import PathHolder
 import calc_engdata
-from special_parse import additional_cols
+from special_parse import additional_cols, eng_separator
 
 
-SCRIPT_VERSION = "V6.2.0"
+SCRIPT_VERSION = "V6.3.0"
 
 ESSENTIALS_COL = (
     "Timestamp",
@@ -107,8 +107,8 @@ def prep_englog(englogpath: str, dest: str) -> None:
     e retorna uma lista com os nomes dos arquivos"""
     with zipfile.ZipFile(englogpath, "r") as zipengs:
         zipengs.extractall(dest)
-        set_englogs = set(zipengs.namelist())
-    return set_englogs
+        list_englogs = list(zipengs.namelist())
+    return list_englogs
 
 
 def get_sn(nome_arquivo: str) -> str | None:
@@ -329,8 +329,18 @@ def create_engdata_output(
     list_colstd = list(DICT_COLNAME.keys())
     list_colstd.extend(["Asset"])
     df_full_engs = get_database_data(path_holder.eng_output, list_colstd)
-    df_full_engs = datalimiter(df_full_engs, 6 * 30)
+    df_full_engs = datalimiter(df_full_engs, daylimit=6 * 30)
     df_all_current = pl.DataFrame({colname: [] for colname in list_colstd})
+
+    list_sn_add = []
+    for pathenglog in list_englogs:
+        sn_add = eng_separator.run(get_sn(pathenglog), path_holder.englogs + pathenglog)
+        list_sn_add.extend(sn_add)
+    list_sn_add = list(filter(lambda item: item is not None, list_sn_add))
+
+    if sn_add:
+        print(f"Ativos separados: {list_sn_add}")
+        list_englogs.extend(list_sn_add)
 
     for engfile in list_englogs:
 
