@@ -16,7 +16,7 @@ import calc_engdata
 from special_parse import additional_cols, eng_separator
 
 
-SCRIPT_VERSION = "V6.3.0"
+SCRIPT_VERSION = "V6.3.1"
 
 ESSENTIALS_COL = (
     "Timestamp",
@@ -235,6 +235,8 @@ def define_types(df: pl.DataFrame, list_colstd: list[str]) -> pl.DataFrame:
         "%m/%d/%y %I:%M %p",  # 7/15/21 12:34 PM
         "%m/%d/%Y %H:%M:%S",  # 07/15/2021 12:34:56
         "%m/%d/%Y %I:%M:%S %p",  # 07/15/2021 12:34:56 PM
+        "%m/%d/%y %H:%M",  # 7/5/21 12:34
+        "%-m/%d/%Y %-H:%M",  # 6/20/2024 0:00
     ]
 
     df = df.with_columns(
