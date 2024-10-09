@@ -16,7 +16,7 @@ import calc_engdata
 from special_parse import additional_cols, eng_separator
 
 
-SCRIPT_VERSION = "V6.3.1"
+SCRIPT_VERSION = "V6.3.2"
 
 ESSENTIALS_COL = (
     "Timestamp",

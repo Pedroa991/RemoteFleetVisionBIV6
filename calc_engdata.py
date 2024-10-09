@@ -1,6 +1,6 @@
 """Cálculos comuns para dados de motores"""
 
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 import polars as pl
 from classes_rfvbi import PathHolder
 import special_parse
@@ -296,6 +296,26 @@ def maintenance_est(df: pl.DataFrame, path_holder: PathHolder) -> pl.DataFrame:
         df_full_maint_output = pl.concat(
             [df_full_maint_output, df_maint_output], how="vertical_relaxed"
         )
+
+    valid_start = datetime.now() - timedelta(days=356 * 50)
+    valid_end = datetime.now() + timedelta(days=356 * 50)
+
+    df_full_maint_output = df_full_maint_output.with_columns(
+        pl.when(
+            (pl.col("Dias estimados SMH") < valid_start)
+            | (pl.col("Dias estimados SMH") > valid_end)
+        )
+        .then(None)
+        .otherwise(pl.col("Dias estimados SMH"))
+        .alias("Dias estimados SMH"),
+        pl.when(
+            (pl.col("Dias estimados Fuel") < valid_start)
+            | (pl.col("Dias estimados Fuel") > valid_end)
+        )
+        .then(None)
+        .otherwise(pl.col("Dias estimados Fuel"))
+        .alias("Dias estimados Fuel"),
+    )
 
     print(df_full_maint_output, "\n")
     print("Cálculo de manutenção finalizado!\n")
