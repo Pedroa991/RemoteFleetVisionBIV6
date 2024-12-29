@@ -9,7 +9,7 @@ import rfvbi
 
 MAIN_WINDOW_TITLE = f"RFV TO BI {rfvbi.SCRIPT_VERSION}"
 MIN_SIZE_WINDOW_WIDTH = 370
-MIN_SIZE_WINDOW_HEIGHT = 200
+MIN_SIZE_WINDOW_HEIGHT = 230
 
 
 class GadgetsFuntions:
@@ -20,6 +20,7 @@ class GadgetsFuntions:
         self.path_englog = ""
         self.path_eventslog = ""
         self.concat = ctk.IntVar()
+        self.is_trendbot = ctk.IntVar()
 
     def getbd(self):
         """Pega o caminho do banco de dados"""
@@ -80,7 +81,11 @@ class GadgetsFuntions:
             return
 
         rfvbi.main(
-            self.path_db, self.path_englog, self.path_eventslog, self.concat.get()
+            self.path_db,
+            self.path_englog,
+            self.path_eventslog,
+            self.concat.get(),
+            self.is_trendbot.get(),
         )
         showinfo("Sucesso!", "Resultados obitidos com sucesso!")
 
@@ -112,13 +117,22 @@ def put_gadgets_main(app: ctk.CTk) -> None:
         variable=runbt.concat,
     )
 
-    bt_englog.place(relx=0.30, rely=0.30, anchor=ctk.CENTER)
-    bt_eventslog.place(relx=0.70, rely=0.30, anchor=ctk.CENTER)
-    bt_db.place(relx=0.30, rely=0.50, anchor=ctk.CENTER)
-    bt_run.place(relx=0.50, rely=0.72, anchor=ctk.CENTER)
+    cb_trendbot = ctk.CTkCheckBox(
+        master=app,
+        text="TrendBot",
+        command=runbt.on_checkbutton_toggle,
+        variable=runbt.is_trendbot,
+    )
+
+    bt_englog.place(relx=0.30, rely=0.25, anchor=ctk.CENTER)
+    bt_eventslog.place(relx=0.70, rely=0.25, anchor=ctk.CENTER)
+    bt_db.place(relx=0.30, rely=0.45, anchor=ctk.CENTER)
+    bt_run.place(relx=0.50, rely=0.80, anchor=ctk.CENTER)
 
     cb_concat.select()
-    cb_concat.place(relx=0.70, rely=0.50, anchor=ctk.CENTER)
+    cb_concat.place(relx=0.70, rely=0.45, anchor=ctk.CENTER)
+
+    cb_trendbot.place(relx=0.50, rely=0.62, anchor=ctk.CENTER)
 
     text_about = rfvbi.SCRIPT_VERSION + " - By Pedro Venancio - Sobre / Ajuda"
     lb_about = ctk.CTkLabel(app, text=text_about, text_color="blue")

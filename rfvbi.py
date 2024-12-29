@@ -14,9 +14,10 @@ import fastexcel  # pylint: disable=unused-import
 from classes_rfvbi import PathHolder
 import calc_engdata
 from special_parse import additional_cols, eng_separator
+from trendbot import run_trendbot
 
 
-SCRIPT_VERSION = "V6.3.2"
+SCRIPT_VERSION = "V6.4.0"
 
 ESSENTIALS_COL = (
     "Timestamp",
@@ -57,6 +58,8 @@ DICT_COLNAME = {
     "SMH": [
         "Run Hours [Hrs]",
         "Run Hours [Hours]",
+        "Engine Run Hours [Hrs]",
+        "Engine Run Hours [Hours]",
         "Total Time [Hours]",
         "Total Operating Hours [Hours]",
         "Engine Total Hours of Operation [Hours]",
@@ -320,7 +323,7 @@ def cleandata(df: pl.DataFrame, pathconfig: str, sheetname: str) -> pl.DataFrame
 
 
 def create_engdata_output(
-    set_assets: set[str], path_holder: PathHolder, englogpath: str
+    set_assets: set[str], path_holder: PathHolder, englogpath: str, is_trendbot: int
 ) -> None:
     """Rotina para manipulação dos dados dos motores"""
 
@@ -396,6 +399,14 @@ def create_engdata_output(
     rmtree(path_holder.englogs)
 
     print("Dados de motores tratados com sucesso!\n")
+
+    if is_trendbot:
+        run_trendbot(
+            df_full_engs,
+            path_holder.tb_baseline,
+            path_holder.tb_monthly,
+            path_holder.tb_comments,
+        )
 
 
 def create_events_output(
@@ -484,7 +495,9 @@ def create_events_output(
     print("Eventos tratados com sucesso!\n")
 
 
-def main(dbpath: str, englogpath: str, eventslogpath: str, concatenar: int) -> None:
+def main(
+    dbpath: str, englogpath: str, eventslogpath: str, concatenar: int, is_trendbot: int
+) -> None:
     """Função principal RFV TO BI"""
 
     if not concatenar:
@@ -493,7 +506,10 @@ def main(dbpath: str, englogpath: str, eventslogpath: str, concatenar: int) -> N
     path_holder = PathHolder(dbpath)
     set_assets = get_assets(path_holder.asset_info)
 
-    create_engdata_output(set_assets, path_holder, englogpath)
+    if not os.path.isdir(path_holder.trendbot):
+        os.makedirs(path_holder.trendbot)
+
+    create_engdata_output(set_assets, path_holder, englogpath, is_trendbot)
 
     create_events_output(set_assets, path_holder, eventslogpath)
 
@@ -509,4 +525,4 @@ if __name__ == "__main__":
     db_path = os.getenv("PATH_BD")
     englog_path = os.getenv("PATH_ENG")
     eventslog_path = os.getenv("PATH_EVENT")
-    main(db_path, englog_path, eventslog_path, 1)
+    main(db_path, englog_path, eventslog_path, 1, 0)

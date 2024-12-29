@@ -22,6 +22,11 @@ class PathHolder:
         )
         self.maintanance_plan = ""
 
+        self.trendbot = os.path.dirname(self.db) + "/04 - TRENDBOT/"
+        self.tb_baseline = self.trendbot + "baseline.csv"
+        self.tb_monthly = self.trendbot + "engs_statistics_monthly.csv"
+        self.tb_comments = self.trendbot + "comments.csv"
+
         self._add_commonpaths()
 
     def _add_commonpaths(self):
