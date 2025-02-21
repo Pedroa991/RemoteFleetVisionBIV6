@@ -1,4 +1,8 @@
+"""Principais funções do TrendBot"""
+
 import polars as pl
+
+TOLERANCE = 0.10
 
 list_parameters = [
     "Batt",
@@ -15,8 +19,6 @@ list_parameters = [
     "Oil_Temp",
 ]
 
-tolerance = 0.10
-
 
 # Aux funcions
 def __categorize_load(load):
@@ -29,9 +31,9 @@ def __categorize_load(load):
 def __mean_comparison(baseline_col, month_col):
     """Comparação entre números com tolerância"""
     return (
-        pl.when(month_col > baseline_col * (1 + tolerance))
+        pl.when(month_col > baseline_col * (1 + TOLERANCE))
         .then(pl.lit("Valor mensal acima do baseline"))
-        .when(month_col < baseline_col * (1 - tolerance))
+        .when(month_col < baseline_col * (1 - TOLERANCE))
         .then(pl.lit("Valor mensal abaixo do baseline"))
         .otherwise(pl.lit("Valor mensal dentro do baseline"))
     )

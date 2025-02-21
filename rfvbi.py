@@ -17,7 +17,7 @@ from special_parse import additional_cols, eng_separator
 from trendbot import run_trendbot
 
 
-SCRIPT_VERSION = "V6.4.0"
+SCRIPT_VERSION = "V6.4.1"
 
 ESSENTIALS_COL = (
     "Timestamp",
@@ -71,7 +71,10 @@ DICT_COLNAME = {
     ],
     "Fuel_Press": ["Fuel Pressure [kPa]", "Engine Fuel Delivery Pressure [kPa]"],
     "Crank_Press": ["Crankcase Pressure [kPa]"],
-    "Aftercooler_Temp": ["Engine Intercooler Temperature [Deg. C]"],
+    "Aftercooler_Temp": [
+        "Engine Intercooler Temperature [Deg. C]",
+        "Aftercooler Temperature [Deg. C]",
+    ],
     "Inlet_Air_Temp": ["Inlet Air Temperature [Deg. C]"],
     "Latitude": ["Latitude [Degrees]"],
     "Longitude": ["Longitude [Degrees]"],

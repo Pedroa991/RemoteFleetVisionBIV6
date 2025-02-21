@@ -329,7 +329,7 @@ def run_currentdata(df: pl.DataFrame) -> pl.DataFrame:
     Otimizado para os dados analisados no período atual
     """
     df = special_parse.run_currentdata(df)
-    df = exh_diff(df)
+
     return df
 
 
@@ -338,6 +338,7 @@ def run_alldata(df: pl.DataFrame, path_holder: PathHolder) -> pl.DataFrame:
     Otimizado para todo o banco de dados com os dados atualizados
     """
     df = special_parse.run_all(df)
+    df = exh_diff(df)
     maintenance_est(df, path_holder)
     return df
 
